@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "whop": {
+      "source": "docs.whop.com",
+      "sourceType": "well-known",
+      "computedHash": "c3b3e6cbdd0e29178a1df3fb006ee0d505fb7545af5e1153f75f1f6e463cb834"
+    }
+  }
+}
