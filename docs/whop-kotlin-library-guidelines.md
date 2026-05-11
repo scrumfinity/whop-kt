@@ -9,7 +9,7 @@ The repository is currently a minimal single-module Kotlin/JVM Gradle project:
 - Root project: `whop-kt`
 - Kotlin plugin: `kotlin("jvm")` version `2.3.20`
 - JVM toolchain: `22`
-- Package currently scaffolded as `com.lepshee`
+- Package currently scaffolded as `dev.lepshee`
 - Only source file: `src/main/kotlin/Main.kt`
 - No `README.md`, `LICENSE`, `CHANGELOG.md`, `docs/`, or `src/test/kotlin` existed before this guideline
 
@@ -18,7 +18,7 @@ Before implementing SDK code, convert the project from a runnable starter into a
 Recommended initial cleanup:
 
 1. Remove the IntelliJ template `Main.kt`.
-2. Create a library package such as `com.lepshee.whop` or `io.github.<owner>.whop`.
+2. Create a library package such as `dev.lepshee.whop` or `io.github.<owner>.whop`.
 3. Add `src/test/kotlin`.
 4. Add `README.md`, `LICENSE`, `CHANGELOG.md`, and Maven publishing metadata.
 5. Add Ktor client and kotlinx.serialization dependencies for the default transport.
@@ -106,7 +106,7 @@ Follow these rules throughout the library:
 ## 4. Proposed package structure
 
 ```text
-src/main/kotlin/com/lepshee/whop/
+src/main/kotlin/dev/lepshee/whop/
   WhopClient.kt
   WhopClientConfig.kt
   WhopRequestOptions.kt
@@ -237,7 +237,7 @@ interface WhopHttpTransport : Closeable {
 Create `whop-spring-boot-autoconfigure` with:
 
 ```text
-src/main/kotlin/com/lepshee/whop/spring/boot/autoconfigure/
+src/main/kotlin/dev/lepshee/whop/spring/boot/autoconfigure/
   WhopAutoConfiguration.kt
   WhopProperties.kt
   WhopWebClientAutoConfiguration.kt

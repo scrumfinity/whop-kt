@@ -1,0 +1,37 @@
+{
+  "properties": [
+    {
+      "name": "whop.api-key",
+      "type": "java.lang.String",
+      "description": "Whop API key used by the auto-configured client."
+    },
+    {
+      "name": "whop.base-url",
+      "type": "java.lang.String",
+      "description": "Whop REST API base URL.",
+      "defaultValue": "https://api.whop.com/api/v1"
+    },
+    {
+      "name": "whop.app-id",
+      "type": "java.lang.String",
+      "description": "Optional Whop app ID."
+    },
+    {
+      "name": "whop.webhook-secret",
+      "type": "java.lang.String",
+      "description": "Optional Standard Webhooks signing secret."
+    },
+    {
+      "name": "whop.timeout",
+      "type": "java.time.Duration",
+      "description": "Default request timeout.",
+      "defaultValue": "30s"
+    },
+    {
+      "name": "whop.max-retries",
+      "type": "java.lang.Integer",
+      "description": "Maximum retry attempts for safe retryable failures.",
+      "defaultValue": 2
+    }
+  ]
+}

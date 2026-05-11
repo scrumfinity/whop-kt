@@ -3,6 +3,7 @@
 plugins {
     kotlin("jvm") version "2.3.20"
     kotlin("plugin.serialization") version "2.3.20"
+    id("com.google.devtools.ksp") version "2.3.7"
     id("org.jlleitschuh.gradle.ktlint") version "14.2.0"
     id("org.jetbrains.dokka") version "2.2.0"
     id("org.jetbrains.dokka-javadoc") version "2.2.0"
@@ -12,8 +13,13 @@ plugins {
     kotlin("plugin.spring") version "2.3.20"
 }
 
-group = "com.lepshee"
-version = "1.0-SNAPSHOT"
+group = "dev.lepshee"
+version = providers.gradleProperty("version").orElse("1.0-SNAPSHOT").get()
+
+allprojects {
+    group = rootProject.group
+    version = rootProject.version
+}
 
 val ktorVersion = "3.4.3"
 val coroutinesVersion = "1.10.2"
@@ -31,6 +37,7 @@ dependencies {
     implementation("io.ktor:ktor-client-logging:$ktorVersion")
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
+    ksp(project(":whop-blocking-ksp"))
 
     testImplementation(kotlin("test"))
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutinesVersion")
@@ -48,6 +55,13 @@ kotlin {
 
 java {
     withSourcesJar()
+}
+
+ktlint {
+    filter {
+        exclude("**/generated/**")
+        exclude { element -> element.file.path.contains("/build/generated/ksp/") }
+    }
 }
 
 val integrationTestSourceSet =
@@ -117,7 +131,7 @@ publishing {
             pom {
                 name.set("whop-kt")
                 description.set("Coroutine-friendly Kotlin/JVM SDK for the Whop API.")
-                url.set("https://github.com/lepshee/whop-kt")
+                url.set("https://github.com/scrumfinity/whop-kt")
 
                 licenses {
                     license {
@@ -130,13 +144,16 @@ publishing {
                     developer {
                         id.set("lepshee")
                         name.set("Lepshee")
+                        email.set("opensource@lepshee.dev")
+                        organization.set("Lepshee")
+                        organizationUrl.set("https://lepshee.dev")
                     }
                 }
 
                 scm {
-                    connection.set("scm:git:https://github.com/lepshee/whop-kt.git")
-                    developerConnection.set("scm:git:ssh://git@github.com/lepshee/whop-kt.git")
-                    url.set("https://github.com/lepshee/whop-kt")
+                    connection.set("scm:git:https://github.com/scrumfinity/whop-kt.git")
+                    developerConnection.set("scm:git:ssh://git@github.com/scrumfinity/whop-kt.git")
+                    url.set("https://github.com/scrumfinity/whop-kt")
                 }
             }
         }
@@ -160,8 +177,8 @@ signing {
     isRequired = isReleaseVersion && isPublishTask
     if (signingKey.isPresent && signingPassword.isPresent) {
         useInMemoryPgpKeys(signingKey.get(), signingPassword.get())
-        sign(publishing.publications["mavenJava"])
     }
+    sign(publishing.publications["mavenJava"])
 }
 
 tasks.test {

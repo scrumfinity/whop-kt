@@ -4,6 +4,7 @@ plugins {
 rootProject.name = "whop-kt"
 
 include(
+    "whop-blocking-ksp",
     "whop-spring-boot-autoconfigure",
     "whop-spring-boot-starter",
 )

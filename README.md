@@ -8,7 +8,15 @@ The project is not published yet. For local development, depend on the module di
 
 ```kotlin
 dependencies {
-    implementation("com.lepshee:whop-kt:1.0-SNAPSHOT")
+    implementation("dev.lepshee:whop-kt:1.0-SNAPSHOT")
+}
+```
+
+Spring Boot 3 applications can use the starter:
+
+```kotlin
+dependencies {
+    implementation("dev.lepshee:whop-kt-spring-boot-starter:1.0-SNAPSHOT")
 }
 ```
 
@@ -90,11 +98,18 @@ callback.requireState(expectedState)
 
 ## Blocking usage
 
-Coroutine-aware Kotlin applications should use `WhopClient` directly. Java or blocking Spring MVC code can use the thin blocking facade:
+Coroutine-aware Kotlin applications should use `WhopClient` directly. Java or blocking Spring MVC code can use the generated blocking facade:
 
 ```kotlin
 val whop = WhopBlockingClient(WhopClientConfig(apiKey = System.getenv("WHOP_API_KEY")))
-val payment = whop.retrievePayment("pay_...")
+val payment = whop.payments.retrieve("pay_...")
+```
+
+From Java, the blocking facade exposes regular resource getters and overloads that do not require Kotlin coroutine support:
+
+```java
+WhopBlockingClient whop = new WhopBlockingClient(config);
+Payment payment = whop.getPayments().retrieve("pay_...");
 ```
 
 ## Spring Boot usage
@@ -130,6 +145,10 @@ whop.products.listAutoPaging(
 ```
 
 Auto-paging follows forward cursors using `page_info.end_cursor`.
+
+## API request/response docs
+
+Downloadable Markdown docs for Whop API endpoints live in [`docs/api-reference`](docs/api-reference/README.md). Each endpoint has its own `.md` file with parameters, request body schemas, response schemas, SDK examples, referenced schemas, and a complete OpenAPI excerpt generated from Whop's official documented OpenAPI source.
 
 ## App auth example
 
