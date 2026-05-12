@@ -1,0 +1,150 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version, for example 0.1.0 or v0.1.0
+        required: true
+        type: string
+      publishing_type:
+        description: Central Portal publishing mode
+        required: true
+        default: user_managed
+        type: choice
+        options:
+          - user_managed
+          - automatic
+  release:
+    types:
+      - published
+
+permissions:
+  contents: read
+
+concurrency:
+  group: maven-central-release
+  cancel-in-progress: false
+
+env:
+  CENTRAL_PORTAL_DEPLOY_URL: https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/
+  CENTRAL_PORTAL_MANUAL_UPLOAD_URL: https://ossrh-staging-api.central.sonatype.com/manual/upload/defaultRepository/dev.lepshee
+
+jobs:
+  publish:
+    name: Publish to Maven Central
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: release
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Resolve release version
+        id: release-version
+        env:
+          DISPATCH_VERSION: ${{ inputs.version }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+
+          version="${DISPATCH_VERSION:-${RELEASE_TAG:-}}"
+          version="${version#v}"
+
+          if [[ -z "${version}" ]]; then
+            echo "::error title=Missing release version::Provide a workflow_dispatch version or publish a GitHub release with a tag."
+            exit 1
+          fi
+
+          if [[ "${version}" == *SNAPSHOT* ]]; then
+            echo "::error title=Invalid release version::Release versions must not contain SNAPSHOT."
+            exit 1
+          fi
+
+          if [[ "${version}" =~ [[:space:]] ]]; then
+            echo "::error title=Invalid release version::Release versions must not contain whitespace."
+            exit 1
+          fi
+
+          if [[ ! "${version}" =~ ^[0-9A-Za-z][0-9A-Za-z._-]*$ ]]; then
+            echo "::error title=Invalid release version::Release versions may only contain letters, numbers, dots, underscores, and hyphens, and must start with a letter or number."
+            exit 1
+          fi
+
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+          echo "### Release version" >> "${GITHUB_STEP_SUMMARY}"
+          echo "Publishing version \`${version}\`." >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Verify release secrets
+        env:
+          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
+          GPG_SIGNING_PASSWORD: ${{ secrets.GPG_SIGNING_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          missing=0
+          for name in MAVEN_CENTRAL_USERNAME MAVEN_CENTRAL_PASSWORD GPG_SIGNING_KEY GPG_SIGNING_PASSWORD; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error title=Missing release secret::Set the ${name} GitHub Actions secret."
+              missing=1
+            fi
+          done
+
+          exit "${missing}"
+
+      - name: Build and test
+        env:
+          RELEASE_VERSION: ${{ steps.release-version.outputs.version }}
+        run: ./gradlew --no-daemon clean build -Pversion="${RELEASE_VERSION}"
+
+      - name: Publish to Maven Central Portal
+        env:
+          MAVEN_REPOSITORY_URL: ${{ env.CENTRAL_PORTAL_DEPLOY_URL }}
+          MAVEN_REPOSITORY_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_REPOSITORY_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
+          SIGNING_PASSWORD: ${{ secrets.GPG_SIGNING_PASSWORD }}
+          RELEASE_VERSION: ${{ steps.release-version.outputs.version }}
+        run: ./gradlew --no-daemon publish -Pversion="${RELEASE_VERSION}"
+
+      - name: Upload deployment to Central Portal
+        env:
+          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          PUBLISHING_TYPE: ${{ inputs.publishing_type || 'user_managed' }}
+        run: |
+          set -euo pipefail
+
+          token="$(printf '%s:%s' "${MAVEN_CENTRAL_USERNAME}" "${MAVEN_CENTRAL_PASSWORD}" | base64 -w 0)"
+          curl --fail-with-body \
+            --request POST \
+            --header "Authorization: Bearer ${token}" \
+            "${CENTRAL_PORTAL_MANUAL_UPLOAD_URL}?publishing_type=${PUBLISHING_TYPE}"
+
+          echo "### Central Portal deployment" >> "${GITHUB_STEP_SUMMARY}"
+          if [[ "${PUBLISHING_TYPE}" == "automatic" ]]; then
+            echo "Requested automatic publication in Central Portal." >> "${GITHUB_STEP_SUMMARY}"
+          else
+            echo "Uploaded deployment to Central Portal for manual review/publish." >> "${GITHUB_STEP_SUMMARY}"
+          fi
+
+      - name: Release next steps
+        run: |
+          cat >> "${GITHUB_STEP_SUMMARY}" <<'EOF'
+          ### Maven Central next step
+
+          Artifacts were deployed with Gradle, then handed off to Central Portal.
+          If `publishing_type` was `user_managed`, open Central Portal, review the deployment, and publish it manually.
+          EOF
